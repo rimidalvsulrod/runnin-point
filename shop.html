@@ -5,6 +5,7 @@
   <title>Shop — Runnin' Point</title>
   <meta name="description" content="Original art and limited-run merch from the Runnin' Point crew.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/commerce.css">
+  <style>.shop-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:26px 0 38px;border-top:1px solid var(--line);color:var(--muted);font:700 .75rem/1 var(--mono);text-transform:uppercase;letter-spacing:.06em}.admin-access{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);transition:color .2s,border-color .2s,background .2s}.admin-access:hover{color:#fff;border-color:var(--red);background:rgba(255,24,24,.08)}</style>
 </head>
 <body>
   <div class="grain"></div>
@@ -20,6 +21,7 @@
     <div class="toolbar"><div class="filters" id="filters"></div><span class="eyebrow" id="productCount">Loading collection</span></div>
     <section class="product-grid" id="products"><div class="empty">Loading the shop…</div></section>
   </main>
+  <footer class="shop-footer shell"><span>© Runnin' Point</span><a class="admin-access" href="/admin">Admin panel</a></footer>
   <div class="scrim" id="scrim"></div>
   <aside class="cart" id="cart" aria-label="Shopping cart">
     <div class="cart-head"><h2>Your cart</h2><button class="icon-button" id="closeCart" aria-label="Close cart">×</button></div>

@@ -51,8 +51,20 @@ export async function ensureSchema() {
       )`;
     await sql`
       INSERT INTO product_categories (name)
-      SELECT DISTINCT category FROM products WHERE category <> ''
-      ON CONFLICT (name) DO NOTHING`;
+      SELECT DISTINCT p.category FROM products p
+      WHERE p.category <> '' AND NOT EXISTS (
+        SELECT 1 FROM product_categories c WHERE lower(c.name) = lower(p.category)
+      )`;
+    await sql`
+      UPDATE products p SET category = c.name
+      FROM product_categories c
+      WHERE c.name IN ('Art', 'Original Art', 'Prints', 'Merch')
+        AND lower(p.category) = lower(c.name) AND p.category <> c.name`;
+    await sql`
+      DELETE FROM product_categories
+      WHERE name NOT IN ('Art', 'Original Art', 'Prints', 'Merch')
+        AND lower(name) IN ('art', 'original art', 'prints', 'merch')`;
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS product_categories_name_lower_idx ON product_categories(lower(name))`;
     await sql`
       CREATE TABLE IF NOT EXISTS orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

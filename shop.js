@@ -15,14 +15,14 @@ function renderProducts(){
   const products=state.category==='All'?state.products:state.products.filter(p=>p.category===state.category);
   $('#productCount').textContent=`${products.length} piece${products.length===1?'':'s'}`;
   $('#products').innerHTML=products.length?products.map(p=>`<article class="product">
-    ${p.featured?'<span class="tag">Featured</span>':''}<div class="product-media">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}">`:'<div class="product-placeholder">r.</div>'}</div>
+    ${p.featured?'<span class="tag">Featured</span>':''}<div class="product-media">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" loading="lazy" decoding="async">`:'<div class="product-placeholder">r.</div>'}</div>
     <div class="product-body"><div class="product-meta"><h2>${escapeHtml(p.name)}</h2><span class="price">${money(p.price_cents)}</span></div><p>${escapeHtml(p.description)}</p>
     <div class="product-actions">${p.variants.length?`<select aria-label="Choose option" id="variant-${p.id}">${p.variants.map(v=>`<option>${escapeHtml(v)}</option>`).join('')}</select>`:''}<button class="button" data-add="${p.id}">Add</button></div></div></article>`).join(''):'<div class="empty">Nothing is available in this collection yet.</div>';
 }
 function renderCart(){
   state.cart=state.cart.filter(item=>state.products.some(p=>p.id===item.product_id));
   const count=state.cart.reduce((n,i)=>n+i.quantity,0); $('#cartCount').textContent=count;
-  $('#cartItems').innerHTML=state.cart.length?state.cart.map((item,index)=>{const p=state.products.find(x=>x.id===item.product_id);return `<div class="cart-item">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="">`:'<div class="mini"></div>'}<div><b>${escapeHtml(p.name)}</b><small>${item.variant?escapeHtml(item.variant)+' · ':''}Qty ${item.quantity}</small><small>${money(p.price_cents*item.quantity)}</small></div><button class="remove" data-remove="${index}" aria-label="Remove">×</button></div>`}).join(''):'<div class="empty">Your cart is empty.</div>';
+  $('#cartItems').innerHTML=state.cart.length?state.cart.map((item,index)=>{const p=state.products.find(x=>x.id===item.product_id);return `<div class="cart-item">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" decoding="async">`:'<div class="mini"></div>'}<div><b>${escapeHtml(p.name)}</b><small>${item.variant?escapeHtml(item.variant)+' · ':''}Qty ${item.quantity}</small><small>${money(p.price_cents*item.quantity)}</small></div><button class="remove" data-remove="${index}" aria-label="Remove">×</button></div>`}).join(''):'<div class="empty">Your cart is empty.</div>';
   const subtotal=state.cart.reduce((sum,item)=>{const p=state.products.find(x=>x.id===item.product_id);return sum+(p?.price_cents||0)*item.quantity},0);
   $('#subtotal').textContent=money(subtotal); $('#shipping').textContent=state.settings.shipping_cents?money(state.settings.shipping_cents):'Free'; $('#total').textContent=money(subtotal+(state.cart.length?state.settings.shipping_cents:0)); $('#checkout').disabled=!state.cart.length;
 }

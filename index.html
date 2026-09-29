@@ -15,6 +15,7 @@
 <meta property="og:image" content="https://runnin-point.vercel.app/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="assets/fonts/inter-tight-400-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/anton-400.woff2" as="font" type="font/woff2" crossorigin>
 <script>
   // Intro plays once per session and never for reduced-motion users.
   (function (d) { d.classList.add('js'); try { if (sessionStorage.getItem('rp-intro') || matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('no-intro'); else sessionStorage.setItem('rp-intro', '1'); } catch (e) {} })(document.documentElement);
@@ -62,9 +63,7 @@ h1,h2,h3,p,figure{margin:0}
 }
 
 /* ---------- page chrome ---------- */
-.grain{position:fixed;inset:-50%;z-index:80;pointer-events:none;opacity:.045;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-@media(hover:hover){.grain{animation:grain .8s steps(4) infinite}}
-@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-4%,3%)}50%{transform:translate(3%,-5%)}75%{transform:translate(-6%,-2%)}100%{transform:translate(0,0)}}
+.grain{position:fixed;inset:0;z-index:80;pointer-events:none;opacity:.035;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .progress{position:fixed;left:0;top:0;right:0;height:2px;z-index:85;background:var(--red);transform:scaleX(0);transform-origin:0 50%}
 .cur,.cur-r{position:fixed;left:0;top:0;z-index:95;pointer-events:none;opacity:0;transition:opacity .3s}
 .cur::before,.cur-r::before{content:"";position:absolute;border-radius:50%;transition:transform .45s var(--ease),background .3s,border-color .3s}
@@ -212,6 +211,10 @@ h1,h2,h3,p,figure{margin:0}
 .track span::after{content:"";width:.24em;height:.24em;border-radius:50%;background:#fff}
 .b2 .track span::after{background:var(--red)}
 @keyframes mq{to{transform:translateX(-50%)}}
+
+/* Skip layout and paint work for sections until they approach the viewport. */
+.tape{content-visibility:auto;contain-intrinsic-size:auto 250px}
+.sec,.cta{content-visibility:auto;contain-intrinsic-size:auto 900px}
 
 /* ---------- sections ---------- */
 .sec{padding:clamp(88px,13vw,170px) 0}
@@ -733,7 +736,7 @@ h1,h2,h3,p,figure{margin:0}
   let mx = -200, my = -200;
   if (fine && !reduce) {
     root.classList.add('has-cur');
-    addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { mx = e.clientX; my = e.clientY; root.classList.remove('cur-out'); } }, { passive: true });
+    addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { mx = e.clientX; my = e.clientY; root.classList.remove('cur-out'); wake(450); } }, { passive: true });
     document.addEventListener('pointerover', e => root.classList.toggle('cur-hover', !!e.target.closest('a,button')));
     document.addEventListener('pointerdown', () => root.classList.add('cur-down'));
     document.addEventListener('pointerup', () => root.classList.remove('cur-down'));
@@ -768,15 +771,21 @@ h1,h2,h3,p,figure{margin:0}
   const prog = $('.progress'), hero = $('.hero'), glow = $('.glow'), cur = $('.cur'), ring = $('.cur-r');
   const tracks = reduce ? [] : $$('.track').map(t => t.getAnimations && t.getAnimations()[0]).filter(Boolean);
   const pars = reduce ? [] : $$('[data-parallax]').map(el => ({ el, f: +el.dataset.parallax }));
-  let lastY = -1, barOn = false, dir = 1, vel = 0, rate = 1, rx = mx, ry = my, gx = 0, gy = 0, gtx = 0, gty = 0;
+  let lastY = -1, barOn = false, dir = 1, vel = 0, rate = 1, rx = mx, ry = my, gx = 0, gy = 0, gtx = 0, gty = 0, rafId = 0, activeUntil = 0;
+  const wake = (duration = 500) => {
+    activeUntil = Math.max(activeUntil, performance.now() + duration);
+    if (!rafId && !document.hidden) rafId = requestAnimationFrame(frame);
+  };
   const glowHome = () => {
     const b = $('.badge').getBoundingClientRect(), h = hero.getBoundingClientRect();
     gtx = b.left + b.width / 2 - h.left; gty = b.top + b.height / 2 - h.top;
   };
   glowHome(); gx = gtx; gy = gty;
-  addEventListener('resize', glowHome);
+  addEventListener('resize', () => { glowHome(); wake(800); });
+  addEventListener('scroll', () => wake(700), { passive: true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(900); });
 
-  const frame = () => {
+  const frame = now => {
     const y = scrollY, vh = innerHeight;
     if (y !== lastY) {
       const dy = lastY < 0 ? 0 : y - lastY;
@@ -807,9 +816,10 @@ h1,h2,h3,p,figure{margin:0}
     }
     gx += (gtx - gx) * .05; gy += (gty - gy) * .05;
     glow.style.transform = `translate3d(${gx.toFixed(1)}px,${gy.toFixed(1)}px,0)`;
-    requestAnimationFrame(frame);
+    const unsettled = Math.abs(rate - dir) > .003 || Math.abs(vel) > .05 || Math.abs(gx - gtx) > .15 || Math.abs(gy - gty) > .15 || (fine && !reduce && (Math.abs(rx - mx) > .15 || Math.abs(ry - my) > .15));
+    rafId = now < activeUntil || unsettled ? requestAnimationFrame(frame) : 0;
   };
-  requestAnimationFrame(frame);
+  wake(1400);
 })();
 </script>
 </body>

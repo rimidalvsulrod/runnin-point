@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shop — Runnin' Point</title>
+  <meta name="description" content="Original art and limited-run merch from the Runnin' Point crew.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/commerce.css">
+</head>
+<body>
+  <div class="grain"></div>
+  <header class="shell topbar">
+    <a class="brand" href="/"><img src="/assets/logo-badge.svg" alt=""><span>Runnin' Point</span></a>
+    <nav class="nav"><a href="/">Podcast</a><a href="https://www.youtube.com/@RunninPoint" target="_blank" rel="noopener">YouTube</a><button class="pill-button" id="cartButton">Cart <span id="cartCount">0</span></button></nav>
+  </header>
+  <main class="shell">
+    <section class="hero">
+      <div><span class="eyebrow">From the crew</span><h1>Art.<br>Merch<i>.</i></h1><p id="storeDescription">Original pieces, prints and limited-run gear made by the Runnin' Point family.</p></div>
+      <div class="hero-note"><b>Made with a point.</b>Small runs. Independent work. Every order supports the artist directly.</div>
+    </section>
+    <div class="toolbar"><div class="filters" id="filters"></div><span class="eyebrow" id="productCount">Loading collection</span></div>
+    <section class="product-grid" id="products"><div class="empty">Loading the shop…</div></section>
+  </main>
+  <div class="scrim" id="scrim"></div>
+  <aside class="cart" id="cart" aria-label="Shopping cart">
+    <div class="cart-head"><h2>Your cart</h2><button class="icon-button" id="closeCart" aria-label="Close cart">×</button></div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-foot"><div class="totals"><div class="total-row"><span>Subtotal</span><b id="subtotal">$0.00</b></div><div class="total-row"><span>Shipping</span><b id="shipping">—</b></div><div class="total-row grand"><span>Total</span><b id="total">$0.00</b></div></div><button class="button" id="checkout">Secure checkout</button></div>
+  </aside>
+  <div class="toast" id="toast"></div>
+  <script type="module" src="/shop.js"></script>
+</body>
+</html>
+

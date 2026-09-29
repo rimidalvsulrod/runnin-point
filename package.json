@@ -1,0 +1,22 @@
+{
+  "name": "runnin-point",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "local": "vercel dev",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/blob": "^2.0.0",
+    "bcryptjs": "^3.0.2",
+    "jose": "^6.1.0",
+    "stripe": "^18.5.0",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "vercel": "^48.1.6"
+  }
+}
+

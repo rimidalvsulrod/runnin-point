@@ -15,8 +15,8 @@ export async function ensureSchema() {
     await sql`
       CREATE TABLE IF NOT EXISTS store_settings (
         id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-        store_name text NOT NULL DEFAULT 'Runnin\' Point Shop',
-        store_description text NOT NULL DEFAULT 'Original art and limited-run merch from the Runnin\' Point crew.',
+        store_name text NOT NULL DEFAULT 'Runnin'' Point Shop',
+        store_description text NOT NULL DEFAULT 'Original art and limited-run merch from the Runnin'' Point crew.',
         currency text NOT NULL DEFAULT 'usd',
         shipping_cents integer NOT NULL DEFAULT 0 CHECK (shipping_cents >= 0),
         stripe_account_id text,

@@ -32,6 +32,8 @@ export default async function handler(req, res) {
     await requireAdmin(req);
     if (req.method === 'POST') {
       const p = productInput.parse(req.body);
+      const category = await sql`SELECT id FROM product_categories WHERE lower(name) = lower(${p.category}) LIMIT 1`;
+      if (!category.length) return json(res, 400, { error: 'Select a valid category.' });
       const [created] = await sql`
         INSERT INTO products (name, description, price_cents, image_url, category, variants, inventory, active, featured)
         VALUES (${p.name}, ${p.description}, ${p.price_cents}, ${p.image_url || null}, ${p.category}, ${JSON.stringify(p.variants)}::jsonb, ${p.inventory}, ${p.active}, ${p.featured})
@@ -46,6 +48,8 @@ export default async function handler(req, res) {
     }
 
     const p = productInput.parse(req.body);
+    const category = await sql`SELECT id FROM product_categories WHERE lower(name) = lower(${p.category}) LIMIT 1`;
+    if (!category.length) return json(res, 400, { error: 'Select a valid category.' });
     const [updated] = await sql`
       UPDATE products SET name=${p.name}, description=${p.description}, price_cents=${p.price_cents},
         image_url=${p.image_url || null}, category=${p.category}, variants=${JSON.stringify(p.variants)}::jsonb,

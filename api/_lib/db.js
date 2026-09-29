@@ -26,6 +26,15 @@ export async function ensureSchema() {
       )`;
     await sql`INSERT INTO store_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
     await sql`
+      CREATE TABLE IF NOT EXISTS product_categories (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL UNIQUE,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`
+      INSERT INTO product_categories (name) VALUES ('Art'), ('Original Art'), ('Prints'), ('Merch')
+      ON CONFLICT (name) DO NOTHING`;
+    await sql`
       CREATE TABLE IF NOT EXISTS products (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         name text NOT NULL,
@@ -40,6 +49,10 @@ export async function ensureSchema() {
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now()
       )`;
+    await sql`
+      INSERT INTO product_categories (name)
+      SELECT DISTINCT category FROM products WHERE category <> ''
+      ON CONFLICT (name) DO NOTHING`;
     await sql`
       CREATE TABLE IF NOT EXISTS orders (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

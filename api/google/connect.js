@@ -1,4 +1,0 @@
-import { createOAuthState, requireDeveloper } from '../_lib/auth.js';
-import { googleSettings } from '../_lib/google.js';
-import { fail, getOrigin, json, method } from '../_lib/response.js';
-export default async function handler(req,res){if(!method(req,res,['POST']))return;try{const user=await requireDeveloper(req),settings=await googleSettings();if(!settings.clientId||!settings.clientSecret)return json(res,400,{error:'Save Google OAuth credentials first.'});const state=await createOAuthState(user);const params=new URLSearchParams({client_id:settings.clientId,redirect_uri:`${getOrigin(req)}/api/google/callback`,response_type:'code',scope:'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',access_type:'offline',prompt:'consent',include_granted_scopes:'true',state});return json(res,200,{url:`https://accounts.google.com/o/oauth2/v2/auth?${params}`})}catch(error){return fail(res,error)}}

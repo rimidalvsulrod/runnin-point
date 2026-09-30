@@ -2,11 +2,12 @@ import { z } from 'zod';
 import { requireAdmin } from './_lib/auth.js';
 import { db, ensureSchema } from './_lib/db.js';
 import { fail, json, method } from './_lib/response.js';
+import { optionalHttpUrl } from './_lib/validate.js';
 
 const update = z.object({
   fulfillment_status: z.enum(['unfulfilled', 'processing', 'shipped', 'delivered', 'cancelled']),
   tracking_number: z.string().trim().max(120).nullable().optional(),
-  tracking_url: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  tracking_url: optionalHttpUrl,
   notes: z.string().trim().max(2000).nullable().optional()
 });
 
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
     const orders = await sql`
       SELECT o.*, COALESCE(json_agg(json_build_object('product_name', i.product_name, 'variant', i.variant, 'quantity', i.quantity, 'unit_amount', i.unit_amount, 'image_url', i.image_url) ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
       FROM orders o LEFT JOIN order_items i ON i.order_id=o.id
+      WHERE ${req.query?.all === '1'} OR o.payment_status IN ('paid', 'refunded', 'partially_refunded')
       GROUP BY o.id ORDER BY o.created_at DESC LIMIT 250`;
     return json(res, 200, { orders });
   } catch (error) {

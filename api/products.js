@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { requireAdmin } from './_lib/auth.js';
 import { db, ensureSchema } from './_lib/db.js';
 import { fail, json, method } from './_lib/response.js';
+import { optionalHttpUrl } from './_lib/validate.js';
 
 const productInput = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(4000).default(''),
   price_cents: z.number().int().min(0).max(100000000),
-  image_url: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  image_url: optionalHttpUrl,
   category: z.string().trim().min(1).max(50).default('Art'),
   variants: z.array(z.string().trim().min(1).max(60)).max(30).default([]),
   inventory: z.number().int().min(0).max(1000000).default(0),

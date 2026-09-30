@@ -150,6 +150,20 @@ export async function ensureSchema() {
         unit_amount integer NOT NULL CHECK (unit_amount >= 0),
         image_url text
       )`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        id bigserial PRIMARY KEY,
+        key text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS checkout_attempts (
+        id bigserial PRIMARY KEY,
+        ip text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`CREATE INDEX IF NOT EXISTS checkout_attempts_ip_idx ON checkout_attempts(ip, created_at DESC)`;
+    await sql`CREATE INDEX IF NOT EXISTS login_attempts_key_idx ON login_attempts(key, created_at DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS products_active_idx ON products(active, created_at DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS orders_created_idx ON orders(created_at DESC)`;
   })().catch(error => {

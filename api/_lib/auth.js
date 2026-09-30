@@ -11,14 +11,24 @@ function secret() {
 }
 
 function cookies(req) {
-  return Object.fromEntries((req.headers.cookie || '').split(';').map(v => v.trim().split('=').map(decodeURIComponent)).filter(v => v.length === 2));
+  const jar = {};
+  for (const part of (req.headers.cookie || '').split(';')) {
+    const index = part.indexOf('=');
+    if (index < 1) continue;
+    try { jar[part.slice(0, index).trim()] = decodeURIComponent(part.slice(index + 1).trim()); } catch { /* ignore malformed cookie */ }
+  }
+  return jar;
 }
+
+// Compared against when the username does not exist so response time doesn't reveal valid usernames.
+const DUMMY_HASH = '$2b$12$Z2cAnHkB9vFd/S3.yy1ju.4icwnGvsMBefPxIJ1qYCvDCucqRhP06';
 
 export async function verifyCredentials(username, password) {
   await ensureSchema();
   const sql = db();
   const [user] = await sql`SELECT username, password_hash, role FROM admin_users WHERE lower(username)=lower(${username.trim()}) AND active=true LIMIT 1`;
-  if (!user || !await bcrypt.compare(password, user.password_hash)) return null;
+  const valid = await bcrypt.compare(password, user?.password_hash || DUMMY_HASH);
+  if (!user || !valid) return null;
   return { username: user.username, role: user.role };
 }
 
@@ -39,9 +49,12 @@ export async function requireAdmin(req) {
   try {
     const token = cookies(req)[COOKIE];
     if (!token) throw new Error('Missing session');
-    const { payload } = await jwtVerify(token, secret());
-    if (!['admin', 'developer'].includes(payload.role)) throw new Error('Invalid role');
-    return payload;
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] });
+    // Re-check the account on every request so deactivated users and role changes apply immediately, not after the 12h token expires.
+    await ensureSchema();
+    const [user] = await db()`SELECT username, role FROM admin_users WHERE lower(username)=lower(${String(payload.username)}) AND active=true LIMIT 1`;
+    if (!user || !['admin', 'developer'].includes(user.role)) throw new Error('Account is not active');
+    return { ...payload, username: user.username, role: user.role };
   } catch {
     throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
   }
@@ -58,7 +71,7 @@ export async function createOAuthState(user) {
 }
 
 export async function verifyOAuthState(token) {
-  const { payload } = await jwtVerify(token, secret());
+  const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] });
   if (payload.purpose !== 'google-drive') throw new Error('Invalid OAuth state');
   return payload;
 }

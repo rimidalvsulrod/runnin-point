@@ -13,6 +13,59 @@ export async function ensureSchema() {
   schemaReady = (async () => {
     const sql = db();
     await sql`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        username text NOT NULL UNIQUE,
+        password_hash text NOT NULL,
+        role text NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'developer')),
+        active boolean NOT NULL DEFAULT true,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD_HASH) await sql`
+      INSERT INTO admin_users (username, password_hash, role)
+      VALUES (${process.env.ADMIN_USERNAME.trim().toLowerCase()}, ${process.env.ADMIN_PASSWORD_HASH}, 'admin')
+      ON CONFLICT (username) DO NOTHING`;
+    if (process.env.DEVELOPER_USERNAME && process.env.DEVELOPER_PASSWORD_HASH) await sql`
+      INSERT INTO admin_users (username, password_hash, role)
+      VALUES (${process.env.DEVELOPER_USERNAME.trim().toLowerCase()}, ${process.env.DEVELOPER_PASSWORD_HASH}, 'developer')
+      ON CONFLICT (username) DO UPDATE SET role = 'developer'`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id bigserial PRIMARY KEY,
+        username text,
+        action text NOT NULL,
+        details jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS integration_settings (
+        id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        google_client_id text,
+        google_client_secret text,
+        google_refresh_token text,
+        google_folder_id text,
+        google_email text,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`INSERT INTO integration_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS video_projects (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        title text NOT NULL,
+        notes text NOT NULL DEFAULT '',
+        status text NOT NULL DEFAULT 'waiting_for_upload' CHECK (status IN ('waiting_for_upload','uploaded','editing','review','complete')),
+        original_file_id text,
+        original_name text,
+        original_size bigint,
+        final_file_id text,
+        final_name text,
+        final_size bigint,
+        created_by text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )`;
+    await sql`
       CREATE TABLE IF NOT EXISTS store_settings (
         id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
         store_name text NOT NULL DEFAULT 'Runnin'' Point Shop',

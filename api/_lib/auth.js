@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
+import { db, ensureSchema } from './db.js';
 
 const COOKIE = 'rp_admin';
 
@@ -14,14 +15,15 @@ function cookies(req) {
 }
 
 export async function verifyCredentials(username, password) {
-  const expectedUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  if (!expectedUsername || !hash) throw Object.assign(new Error('Admin credentials are not configured'), { statusCode: 503 });
-  return username.trim().toLowerCase() === expectedUsername && await bcrypt.compare(password, hash);
+  await ensureSchema();
+  const sql = db();
+  const [user] = await sql`SELECT username, password_hash, role FROM admin_users WHERE lower(username)=lower(${username.trim()}) AND active=true LIMIT 1`;
+  if (!user || !await bcrypt.compare(password, user.password_hash)) return null;
+  return { username: user.username, role: user.role };
 }
 
-export async function createSession(res, username) {
-  const token = await new SignJWT({ username, role: 'admin' })
+export async function createSession(res, user) {
+  const token = await new SignJWT({ username: user.username, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('12h')
@@ -38,10 +40,26 @@ export async function requireAdmin(req) {
     const token = cookies(req)[COOKIE];
     if (!token) throw new Error('Missing session');
     const { payload } = await jwtVerify(token, secret());
-    if (payload.role !== 'admin') throw new Error('Invalid role');
+    if (!['admin', 'developer'].includes(payload.role)) throw new Error('Invalid role');
     return payload;
   } catch {
     throw Object.assign(new Error('Unauthorized'), { statusCode: 401 });
   }
+}
+
+export async function requireDeveloper(req) {
+  const user = await requireAdmin(req);
+  if (user.role !== 'developer') throw Object.assign(new Error('Developer access required'), { statusCode: 403 });
+  return user;
+}
+
+export async function createOAuthState(user) {
+  return new SignJWT({ username: user.username, purpose: 'google-drive' }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('10m').sign(secret());
+}
+
+export async function verifyOAuthState(token) {
+  const { payload } = await jwtVerify(token, secret());
+  if (payload.purpose !== 'google-drive') throw new Error('Invalid OAuth state');
+  return payload;
 }
 

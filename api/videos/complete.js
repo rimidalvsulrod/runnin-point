@@ -1,0 +1,8 @@
+import { z } from 'zod';
+import { requireAdmin } from '../_lib/auth.js';
+import { audit } from '../_lib/audit.js';
+import { db, ensureSchema } from '../_lib/db.js';
+import { driveFetch } from '../_lib/google.js';
+import { fail, json, method } from '../_lib/response.js';
+const input=z.object({project_id:z.string().uuid(),kind:z.enum(['original','final']),file_id:z.string().min(5).max(200)});
+export default async function handler(req,res){if(!method(req,res,['POST']))return;try{const user=await requireAdmin(req),b=input.parse(req.body);if(b.kind==='final'&&user.role!=='developer')return json(res,403,{error:'Only the developer can upload final edits.'});const response=await driveFetch(`/drive/v3/files/${encodeURIComponent(b.file_id)}?fields=id,name,size,mimeType,appProperties`),file=await response.json();if(!response.ok||file.appProperties?.rp_project_id!==b.project_id||file.appProperties?.rp_kind!==b.kind)return json(res,400,{error:'Drive could not verify this project file.'});await ensureSchema();const sql=db();const [project]=b.kind==='original'?await sql`UPDATE video_projects SET original_file_id=${file.id},original_name=${file.name},original_size=${Number(file.size||0)},status='uploaded',updated_at=now() WHERE id=${b.project_id} RETURNING *`:await sql`UPDATE video_projects SET final_file_id=${file.id},final_name=${file.name},final_size=${Number(file.size||0)},status='review',updated_at=now() WHERE id=${b.project_id} RETURNING *`;await audit(user.username,`video.${b.kind}_uploaded`,{id:b.project_id,name:file.name,size:file.size});return json(res,200,{project})}catch(error){return fail(res,error)}}

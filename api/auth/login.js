@@ -8,9 +8,10 @@ export default async function handler(req, res) {
   if (!method(req, res, ['POST'])) return;
   try {
     const body = input.parse(req.body);
-    if (!await verifyCredentials(body.username, body.password)) return json(res, 401, { error: 'Incorrect username or password.' });
-    await createSession(res, body.username.trim().toLowerCase());
-    return json(res, 200, { ok: true });
+    const user = await verifyCredentials(body.username, body.password);
+    if (!user) return json(res, 401, { error: 'Incorrect username or password.' });
+    await createSession(res, user);
+    return json(res, 200, { ok: true, user });
   } catch (error) {
     return fail(res, error);
   }
